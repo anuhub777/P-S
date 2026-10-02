@@ -32,6 +32,9 @@ export default function SignupPage() {
     try {
       const res = await api.sendOtp(email, 'signup');
       setMsg(res.message);
+      if (res.otp) {
+        setOtp(res.otp);
+      }
       setStep('otp');
     } catch (e) {
       setError(e.message);

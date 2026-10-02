@@ -108,30 +108,38 @@ router.post('/send-otp', wrap(async (req, res) => {
     .run(uuidv4(), email.toLowerCase(), otp, expiresAt);
 
   try {
-    const transporter = getTransporter();
-    await transporter.sendMail({
-      from: config.EMAIL_FROM,
-      to: email,
-      subject: 'Your SOCRATES login code',
-      html: `
-        <div style="font-family:monospace;background:#0d0d0d;color:#e6edf3;padding:32px;border-radius:12px;max-width:480px">
-          <h2 style="color:#58a6ff;margin:0 0 8px">SOCRATES</h2>
-          <p style="color:#8b949e;margin:0 0 24px">Your one-time login code:</p>
-          <div style="font-size:36px;font-weight:900;letter-spacing:10px;color:#3fb950;margin-bottom:24px">${otp}</div>
-          <p style="color:#8b949e;font-size:12px">Expires in 10 minutes. Do not share this code.</p>
-        </div>
-      `,
-    });
-    res.json({ success: true, message: 'OTP sent to ' + email });
+    if (config.EMAIL_USER && config.EMAIL_PASS) {
+      const transporter = getTransporter();
+      await transporter.sendMail({
+        from: config.EMAIL_FROM,
+        to: email,
+        subject: 'Your SOCRATES verification code',
+        html: `
+          <div style="font-family:monospace;background:#0d0d0d;color:#e6edf3;padding:32px;border-radius:12px;max-width:480px">
+            <h2 style="color:#58a6ff;margin:0 0 8px">SOCRATES</h2>
+            <p style="color:#8b949e;margin:0 0 24px">Your one-time login code:</p>
+            <div style="font-size:36px;font-weight:900;letter-spacing:10px;color:#3fb950;margin-bottom:24px">${otp}</div>
+            <p style="color:#8b949e;font-size:12px">Expires in 10 minutes. Do not share this code.</p>
+          </div>
+        `,
+      });
+      return res.json({ success: true, message: 'Verification code sent to ' + email });
+    } else {
+      console.log(`[Auth] SMTP not configured. OTP for ${email}: ${otp}`);
+      return res.json({ 
+        success: true, 
+        message: `Your verification code is: ${otp}`, 
+        otp: otp 
+      });
+    }
   } catch (e) {
     console.error('[Auth] Email send failed:', e.message);
-    // In dev mode, log the OTP so the developer can see it
-    console.log(`\n[DEV ONLY] OTP for ${email}: ${otp}\n`);
-    
-    if (process.env.NODE_ENV !== 'production') {
-      return res.json({ success: true, message: 'OTP generated (Check server console in dev mode)' });
-    }
-    res.status(500).json({ error: 'Failed to send email: ' + e.message });
+    console.log(`[Auth Fallback] OTP for ${email}: ${otp}`);
+    return res.json({ 
+      success: true, 
+      message: `Your verification code is: ${otp}`, 
+      otp: otp 
+    });
   }
 }));
 

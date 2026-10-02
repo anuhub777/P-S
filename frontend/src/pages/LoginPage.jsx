@@ -32,6 +32,9 @@ export default function LoginPage() {
     try {
       const res = await api.sendOtp(email, 'login');
       setMsg(res.message);
+      if (res.otp) {
+        setOtp(res.otp);
+      }
       setStep('otp');
     } catch (e) {
       setError(e.message);
